@@ -1,0 +1,12 @@
+﻿.nav-login {
+    display: flex;
+    justify-content: center;
+    background-color: deepskyblue;
+    color: white;
+    padding: 5px;
+    width: 100%;
+    border-bottom: 2px solid black;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 0.8em;
+}

@@ -1,0 +1,24 @@
+﻿@inject NavigationManager Navigation
+@inject AuthenticationService AuthenticationService
+
+<nav class="navbar">
+    <ul>
+        <li><a href="/">Početna stranica</a></li>
+        <li><a href="/products">Proizvodi</a></li>
+        <li><a href="/proposals">Prijedlozi</a></li>
+        @if (AuthenticationService.isUserAuthenticated())
+        {
+            <li>
+                <button class="btn-logout" @onclick="HandleLogout">Odjavi se</button>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthenticationService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

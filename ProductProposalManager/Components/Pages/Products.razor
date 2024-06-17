@@ -1,0 +1,56 @@
+﻿@page "/products"
+@inject NavigationManager Navigation
+@inject AuthenticationService AuthenticationService
+@inject IProductService ProductService
+
+
+<div class="products-container">
+    <h3>Proizvodi</h3>
+
+    @if (_products == null)
+    {
+        <p>@ErrorMessage</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ime proizvoda</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in _products)
+                {
+                    <tr>
+                        <td>@product.ProductName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IEnumerable<Product> _products;
+    private string ErrorMessage { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthenticationService.isUserAuthenticated())
+        {
+            Navigation.NavigateTo("/login");
+        }
+
+        var products = await ProductService.GetAllProducts();
+        if (products != null && products.Any())
+        {
+            _products = products;
+        }
+        else
+        {
+            ErrorMessage = "Nema proizvoda za predlaganje";
+        }
+    }
+}

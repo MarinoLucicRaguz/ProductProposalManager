@@ -1,0 +1,33 @@
+﻿.products-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 20px;
+}
+
+h3 {
+    font-size: 1.5em;
+    color: black;
+    margin-top: -10px;
+    text-align: center;
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.table {
+    margin-top: 20px;
+    width: 90%;
+    border-collapse: collapse;
+}
+
+.table th {
+    padding: 10px;
+    text-align: left;
+    background-color: slategray;
+    font-weight: bold;
+    border: 1px solid black;
+}
+
+.table td {
+    border-bottom: 1px solid gray;
+    text-align: left;
+}

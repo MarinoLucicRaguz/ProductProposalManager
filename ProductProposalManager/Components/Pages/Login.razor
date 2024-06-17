@@ -1,0 +1,54 @@
+﻿@page "/login"
+@inject NavigationManager Navigation
+@inject IUserService UserService
+@inject AuthenticationService AuthenticationService
+
+@using ProductProposalManager.Models
+@using ProductProposalManager.Services
+
+<div class="login-container">
+    <h3>Prijava</h3>
+
+    <div class="form-group">
+        <label>Username: </label>
+        <input @bind="Username" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label>Password: </label>
+        <input @bind="Password" type="password" class="form-control" />
+    </div>
+    <button class="btn-login" @onclick="HandleLogin">Prijavi se</button>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="errorMessage">@ErrorMessage</div>
+    }
+</div>
+
+@code {
+    private string Username { get; set; }
+    private string Password { get; set; }
+    private string ErrorMessage { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (AuthenticationService.isUserAuthenticated())
+        {
+            Navigation.NavigateTo("/home");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        var user = await UserService.AuthenticateUser(Username, Password);
+        if (user != null)
+        {
+            await AuthenticationService.SetUserAsAuthenticated(user);
+            Navigation.NavigateTo("/home");
+        }
+        else
+        {
+            ErrorMessage = "Pogrešno korisničko ime ili zaporka.";
+        }
+    }
+}

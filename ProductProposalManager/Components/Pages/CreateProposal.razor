@@ -1,0 +1,99 @@
+﻿@page "/create-proposal"
+@inject NavigationManager Navigation
+@inject IProposalService ProposalService
+@inject AuthenticationService AuthenticationService
+@inject IProductService ProductService
+
+
+<div class="create-proposal-container">
+    <h3>Napravi prijedlog</h3>
+    @if (Products != null && Products.Any())
+    {
+        <div class="form">
+            <div class="form-group">
+                <label for="product">Proizvod</label>
+                <select @bind="NewProposal.ProductId" class="form-control" id="product">
+                    @foreach (var product in Products)
+                    {
+                        <option value="@product.Id">@product.ProductName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Opis prijedloga</label>
+                <textarea @bind="NewProposal.ProposalText" class="form-control" id="description"></textarea>
+            </div>
+
+            <button class="btn-create" @onclick="HandleCreateProposal">Dodaj prijedlog</button>
+        </div>
+    }
+    else
+    {
+        <div class="infoMessage">
+            @InfoMessage
+        </div>
+    }
+    @if(!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="errorMessage">@ErrorMessage</div>
+    }
+</div>
+
+@code {
+    private Proposal NewProposal = new Proposal();
+    private IEnumerable<Product> Products;
+    private string ErrorMessage { get; set; }
+    private string InfoMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthenticationService.isUserAuthenticated())
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var userId = await AuthenticationService.GetCurrentUserId();
+        var userProposals = await ProposalService.GetUserProposals(userId);
+        var allProducts = await ProductService.GetAllProducts();
+
+        var proposedProductIds = userProposals.Select(p => p.ProductId).ToHashSet();
+
+        Products = allProducts.Where(p => !proposedProductIds.Contains(p.Id)).ToList();
+
+        if (!Products.Any())
+        {
+            InfoMessage = "Napravili ste prijedloge za sve proizvode. Bravo :)";
+        }
+    }
+
+    private async Task HandleCreateProposal()
+    {
+        var userId = await AuthenticationService.GetCurrentUserId();
+        NewProposal.UserId = userId;
+        NewProposal.Status = Enums.ProposalStatus.CONSIDERATION;
+        NewProposal.Product = Products.FirstOrDefault(p => p.Id == NewProposal.ProductId);
+
+        if (NewProposal.Product == null)
+        {
+            ErrorMessage = "Proizvod nije odabran.";
+            return;
+        }
+        if (NewProposal.ProposalText == null)
+        {
+            ErrorMessage = "Prijedlog nije zapisan.";
+            return;
+        }
+
+        try
+        {
+            await ProposalService.AddProposal(NewProposal);
+            Navigation.NavigateTo("/proposals");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Dogodila se greska: {ex.Message}";
+        }
+    }
+}

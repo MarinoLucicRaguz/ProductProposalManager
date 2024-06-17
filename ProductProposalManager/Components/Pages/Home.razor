@@ -1,0 +1,16 @@
+﻿@page "/home"
+@inject NavigationManager Navigation
+@inject AuthenticationService AuthenticationService
+
+<h3>Početna stranica</h3>
+<p>Dobrodošli u aplikacjiu</p>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AuthenticationService.isUserAuthenticated())
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

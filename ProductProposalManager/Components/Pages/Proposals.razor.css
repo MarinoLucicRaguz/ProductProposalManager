@@ -1,0 +1,63 @@
+﻿.proposals-container {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.proposals-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid gray;
+    position: sticky;
+    top: 0;
+    background-color: white;
+}
+
+h3 {
+    font-size: 1.5em;
+    color: black;
+    margin: 0;
+    text-align: left;
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.table {
+    margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    padding: 10px;
+    text-align: left;
+    background-color: slategray;
+    font-weight: bold;
+    border: 1px solid black;
+}
+
+.table td {
+    padding: 10px;
+    border: 1px solid gray;
+    text-align: left;
+}
+
+.proposalText { 
+    word-break: break-all; /*ako se korisniku pokvari spacebar pa ne moze razdvojiti tekst*/
+}
+
+.btn {
+    width: auto;
+    padding: 10px 20px;
+    background-color: darkgray;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: gray;
+}

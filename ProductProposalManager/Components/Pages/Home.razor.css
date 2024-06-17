@@ -1,0 +1,15 @@
+﻿h3 {
+    font-size: 1.5em;
+    color: black;
+    margin-top: -10px;
+    padding: 10px;
+    text-align: center;
+    text-shadow: 0px 2px 4px rgba(0,0,0,0.2);
+}
+
+p {
+    font-size: 1.4em;
+    color: black;
+    margin-top: 10px;
+    text-align: center;
+}

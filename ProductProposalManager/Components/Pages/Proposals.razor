@@ -1,0 +1,95 @@
+﻿@page "/proposals"
+@inject NavigationManager Navigation
+@inject AuthenticationService AuthenticationService
+@inject IProposalService ProposalService
+@inject IProductService ProductService
+@inject IUserService UserService
+
+<div class="proposals-container">
+    <div class="proposals-header">
+        <h3> Prijedlozi </h3>
+        <button class="btn" @onclick="() => CreateProposal()">Napravi prijedlog</button>
+    </div>
+    @if (_proposals==null)
+    {
+        <h2>@ErrorMessage</h2>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ime proizvoda</th>
+                    <th>Opis prijedloga</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var proposal in _proposals)
+                {
+                    <tr>
+                        <td>@proposal.Product.ProductName</td>
+                        <td class="proposalText">@proposal.ProposalText</td>
+                        <td>@EnumToText(proposal.Status)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IEnumerable<Proposal> _proposals;
+    private string ErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if(!AuthenticationService.isUserAuthenticated())
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var userId = await AuthenticationService.GetCurrentUserId();
+        var proposals = await ProposalService.GetUserProposals(userId);
+
+        foreach (var proposal in proposals)
+        {
+            if (proposal.Product == null && proposal.ProductId != 0)
+            {
+                proposal.Product = await ProductService.GetProductById(proposal.ProductId);
+            }
+            if (proposal.User == null && proposal.UserId != 0)
+            {
+                proposal.User = await UserService.GetUserById(proposal.UserId);
+            }
+        }
+
+
+        if (proposals != null && proposals.Any())
+        {
+            _proposals = proposals;
+        }
+        else
+        {
+            ErrorMessage = "Još niste predložili niti jedan proizvod.";
+        }
+    }
+
+    public string EnumToText(Enums.ProposalStatus proposalStatus)
+    {
+        return proposalStatus switch
+        {
+            Enums.ProposalStatus.REJECTED => "Odbijeno",
+            Enums.ProposalStatus.CONSIDERATION => "Na razmatranju",
+            Enums.ProposalStatus.PENDING => "Na čekanju",
+            Enums.ProposalStatus.ACCEPTED => "Prihvaćeno",
+            _ => "Nepoznat status.",
+        };
+    }
+
+    private void CreateProposal()
+    {
+        Navigation.NavigateTo("/create-proposal");
+    }
+}
