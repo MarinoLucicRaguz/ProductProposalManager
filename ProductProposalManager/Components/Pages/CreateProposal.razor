@@ -1,9 +1,7 @@
 ﻿@page "/create-proposal"
 @inject NavigationManager Navigation
-@inject IProposalService ProposalService
 @inject AuthenticationService AuthenticationService
-@inject IProductService ProductService
-
+@inject IHttpClientFactory HttpClientFactory
 
 <div class="create-proposal-container">
     <h3>Napravi prijedlog</h3>
@@ -34,7 +32,7 @@
             @InfoMessage
         </div>
     }
-    @if(!string.IsNullOrEmpty(ErrorMessage))
+    @if (!string.IsNullOrEmpty(ErrorMessage))
     {
         <div class="errorMessage">@ErrorMessage</div>
     }
@@ -46,6 +44,10 @@
     private string ErrorMessage { get; set; }
     private string InfoMessage { get; set; }
 
+    private HttpClient _client;
+    private int? _userId;
+    private User _user;
+
     protected override async Task OnInitializedAsync()
     {
         if (!AuthenticationService.isUserAuthenticated())
@@ -54,33 +56,82 @@
             return;
         }
 
-        var userId = await AuthenticationService.GetCurrentUserId();
-        var userProposals = await ProposalService.GetUserProposals(userId);
-        var allProducts = await ProductService.GetAllProducts();
+        _client = HttpClientFactory.CreateClient("api");
+        _userId = await AuthenticationService.GetCurrentUserId();
 
-        var proposedProductIds = userProposals.Select(p => p.ProductId).ToHashSet();
-
-        Products = allProducts.Where(p => !proposedProductIds.Contains(p.Id)).ToList();
-
-        if (!Products.Any())
+        if (_userId == null)
         {
-            InfoMessage = "Napravili ste prijedloge za sve proizvode. Bravo :)";
+            ErrorMessage = "Korisnik nije pronaden.";
+            return;
+        }
+
+        var userResponse = await _client.GetAsync($"api/User/{_userId}");
+        if (userResponse.IsSuccessStatusCode)
+        {
+            _user = await userResponse.Content.ReadFromJsonAsync<User>();
+        }
+
+        await InitializeData();
+    }
+
+    private async Task InitializeData()
+    {
+        try
+        {
+            var userProposalsResponse = await _client.GetAsync($"api/Proposal/user/{_userId}");
+            if (userProposalsResponse.IsSuccessStatusCode)
+            {
+                var userProposals = await userProposalsResponse.Content.ReadFromJsonAsync<List<Proposal>>();
+                var productsResponse = await _client.GetAsync("api/Product");
+                if (productsResponse.IsSuccessStatusCode)
+                {
+                    var allProducts = await productsResponse.Content.ReadFromJsonAsync<List<Product>>();
+                    var proposedProductIds = userProposals.Select(p => p.ProductId).ToList();
+
+                    Products = allProducts.Where(p => !proposedProductIds.Contains(p.Id)).ToList();
+
+                    if (!Products.Any())
+                    {
+                        InfoMessage = "Napravili ste prijedloge za sve proizvode. Bravo :)";
+                    }
+                }
+                else
+                {
+                    ErrorMessage = "Greska pri dohvacanju proizvoda.";
+                }
+            }
+            else
+            {
+                ErrorMessage = "Greska pri dohvacanju prijedloga korisnika.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Doslo je do greske: {ex.Message}";
         }
     }
 
     private async Task HandleCreateProposal()
     {
-        var userId = await AuthenticationService.GetCurrentUserId();
-        NewProposal.UserId = userId;
+        if (_userId == null)
+        {
+            ErrorMessage = "Korisnik nije pronađen.";
+            return;
+        }
+
+        NewProposal.UserId = _userId.Value;
+        NewProposal.User = _user;
         NewProposal.Status = Enums.ProposalStatus.CONSIDERATION;
         NewProposal.Product = Products.FirstOrDefault(p => p.Id == NewProposal.ProductId);
+
+        Console.WriteLine($"NewProposal: {System.Text.Json.JsonSerializer.Serialize(NewProposal)}");
 
         if (NewProposal.Product == null)
         {
             ErrorMessage = "Proizvod nije odabran.";
             return;
         }
-        if (NewProposal.ProposalText == null)
+        if (string.IsNullOrEmpty(NewProposal.ProposalText))
         {
             ErrorMessage = "Prijedlog nije zapisan.";
             return;
@@ -88,8 +139,16 @@
 
         try
         {
-            await ProposalService.AddProposal(NewProposal);
-            Navigation.NavigateTo("/proposals");
+            var response = await _client.PostAsJsonAsync("api/Proposal", NewProposal);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/proposals");
+            }
+            else
+            {
+                var responseBody = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Dogodila se greška prilikom dodavanja prijedloga. Odgovor: {responseBody}";
+            }
         }
         catch (Exception ex)
         {

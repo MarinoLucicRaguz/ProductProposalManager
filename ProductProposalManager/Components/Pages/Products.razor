@@ -1,7 +1,7 @@
 ﻿@page "/products"
 @inject NavigationManager Navigation
 @inject AuthenticationService AuthenticationService
-@inject IProductService ProductService
+@inject IHttpClientFactory HttpClientFactory
 
 
 <div class="products-container">
@@ -43,14 +43,29 @@
             Navigation.NavigateTo("/login");
         }
 
-        var products = await ProductService.GetAllProducts();
-        if (products != null && products.Any())
+        try
         {
-            _products = products;
+            var client = HttpClientFactory.CreateClient("api");
+
+            var response = await client.GetAsync($"api/Product/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var products = await response.Content.ReadFromJsonAsync<IEnumerable<Product>>();
+                if (products != null)
+                {
+                    _products = products;
+                }
+            }
+            else
+            {
+                ErrorMessage = "Nema proizvoda za predlaganje";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            ErrorMessage = "Nema proizvoda za predlaganje";
+            ErrorMessage = $"Doslo je do greske: {ex.Message}";
         }
+       
     }
 }

@@ -1,16 +1,14 @@
 ﻿@page "/proposals"
 @inject NavigationManager Navigation
 @inject AuthenticationService AuthenticationService
-@inject IProposalService ProposalService
-@inject IProductService ProductService
-@inject IUserService UserService
+@inject IHttpClientFactory HttpClientFactory
 
 <div class="proposals-container">
     <div class="proposals-header">
         <h3> Prijedlozi </h3>
-        <button class="btn" @onclick="() => CreateProposal()">Napravi prijedlog</button>
+        <button class="btn" @onclick="CreateProposal">Napravi prijedlog</button>
     </div>
-    @if (_proposals==null)
+    @if (_proposals == null)
     {
         <h2>@ErrorMessage</h2>
     }
@@ -44,35 +42,61 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if(!AuthenticationService.isUserAuthenticated())
+        if (!AuthenticationService.isUserAuthenticated())
         {
             Navigation.NavigateTo("/login");
             return;
         }
 
         var userId = await AuthenticationService.GetCurrentUserId();
-        var proposals = await ProposalService.GetUserProposals(userId);
-
-        foreach (var proposal in proposals)
+        if (userId == null)
         {
-            if (proposal.Product == null && proposal.ProductId != 0)
-            {
-                proposal.Product = await ProductService.GetProductById(proposal.ProductId);
-            }
-            if (proposal.User == null && proposal.UserId != 0)
-            {
-                proposal.User = await UserService.GetUserById(proposal.UserId);
-            }
+            ErrorMessage = "Taj ID ne postoji.";
+            return;
         }
 
+        try
+        {
+            var client = HttpClientFactory.CreateClient("api");
 
-        if (proposals != null && proposals.Any())
-        {
-            _proposals = proposals;
+            var response = await client.GetAsync($"api/Proposal/user/{userId}");
+
+            var jsonString = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response: {jsonString}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var proposals = await response.Content.ReadFromJsonAsync<IEnumerable<Proposal>>();
+                if (proposals != null)
+                {
+                    foreach (var proposal in proposals)
+                    {
+                        if (proposal.Product == null && proposal.ProductId != 0)
+                        {
+                            proposal.Product = await client.GetFromJsonAsync<Product>($"api/Product/{proposal.ProductId}");
+                        }
+                        if (proposal.User == null && proposal.UserId != 0)
+                        {
+                            proposal.User = await client.GetFromJsonAsync<User>($"api/User/{proposal.UserId}");
+                        }
+                    }
+
+                    _proposals = proposals;
+                    Console.WriteLine($"Proposals: {System.Text.Json.JsonSerializer.Serialize(_proposals)}");
+                }
+                else
+                {
+                    ErrorMessage = "Još niste predložili niti jedan proizvod.";
+                }
+            }
+            else
+            {
+                ErrorMessage = $"Doslo je do greske: {response.ReasonPhrase}";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            ErrorMessage = "Još niste predložili niti jedan proizvod.";
+            ErrorMessage = $"Doslo je do greske: {ex.Message}";
         }
     }
 

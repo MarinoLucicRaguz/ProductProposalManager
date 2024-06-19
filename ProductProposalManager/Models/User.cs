@@ -8,6 +8,6 @@ namespace ProductProposalManager.Models
         public string Username { get; set; }
         public string Password { get; set; }
         public UserRole Role { get; set; }
-        public Proposal Proposal { get; set; }
+        public virtual ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
     }
 }
